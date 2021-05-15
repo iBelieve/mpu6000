@@ -154,8 +154,8 @@ impl<E, BUS: RegAccess<Error = E>> MPU6000<BUS> {
         return Ok((high as u16) << 8 | low as u16);
     }
 
-    pub fn set_gyro_sensitive(&mut self, sensitive: GyroSensitive) -> Result<(), E> {
-        self.bus.write(Register::GyroConfig, (sensitive as u8) << 3)
+    pub fn set_gyro_range(&mut self, range: GyroRange) -> Result<(), E> {
+        self.bus.write(Register::GyroConfig, (range as u8) << 3)
     }
 
     pub fn read_acceleration(&mut self) -> Result<Acceleration, E> {
@@ -182,11 +182,8 @@ impl<E, BUS: RegAccess<Error = E>> MPU6000<BUS> {
         Ok((buffer[..6].into(), buffer[6..8].into(), buffer[8..].into()))
     }
 
-    pub fn set_accelerometer_sensitive(
-        &mut self,
-        sensitive: AccelerometerSensitive,
-    ) -> Result<(), E> {
-        self.bus.write(Register::AccelerometerConfig, (sensitive as u8) << 3)
+    pub fn set_accelerometer_range(&mut self, range: AccelerometerRange) -> Result<(), E> {
+        self.bus.write(Register::AccelerometerConfig, (range as u8) << 3)
     }
 }
 
@@ -247,7 +244,7 @@ mod test {
         extern crate std;
 
         use crate::bus::SpiBus;
-        use crate::registers::{AccelerometerSensitive, GyroSensitive};
+        use crate::registers::{AccelerometerRange, GyroRange};
         use crate::MPU6000;
 
         let spi_bus = SpiBus::new(StubSPI {}, StubOutputPin {}, Nodelay {});
@@ -255,27 +252,8 @@ mod test {
         let mut delay = Nodelay {};
         mpu6000.reset(&mut delay).ok();
         mpu6000.set_sleep(false).ok();
-        let sensitive = accelerometer_sensitive!(+/-16g, 2048/LSB);
-        mpu6000.set_accelerometer_sensitive(sensitive).ok();
-        let sensitive = gyro_sensitive!(+/-2000dps, 16.4LSB/dps);
-        mpu6000.set_gyro_sensitive(sensitive).ok();
+        mpu6000.set_accelerometer_range(AccelerometerRange::G16).ok();
+        mpu6000.set_gyro_range(GyroRange::DPS2000).ok();
         mpu6000.read_all().ok();
-    }
-
-    #[test]
-    fn test_macro() {
-        extern crate std;
-
-        use crate::registers::{AccelerometerSensitive, GyroSensitive};
-        assert_eq!(
-            accelerometer_sensitive!(+/-2g, 16384/LSB),
-            AccelerometerSensitive::Sensitive16384
-        );
-        assert_eq!(
-            accelerometer_sensitive!(+/-4g, 8192/LSB),
-            AccelerometerSensitive::Sensitive8192
-        );
-        assert_eq!(gyro_sensitive!(+/-1000dps, 32.8LSB/dps), GyroSensitive::Sensitive32_8);
-        assert_eq!(gyro_sensitive!(+/-2000dps, 16.4LSB/dps), GyroSensitive::Sensitive16_4);
     }
 }

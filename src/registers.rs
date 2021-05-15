@@ -21,73 +21,49 @@ pub enum SignalPathReset {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum AccelerometerSensitive {
-    Sensitive16384 = 0,
-    Sensitive8192 = 1,
-    Sensitive4096 = 2,
-    Sensitive2048 = 3,
+pub enum AccelerometerRange {
+    /// +/- 2g, 16384 LSB/g
+    G2 = 0,
+    /// +/- 4g, 8192 LSB/g
+    G4 = 1,
+    /// +/- 8g, 4096 LSB/g
+    G8 = 2,
+    /// +/- 16g, 2048 LSB/g
+    G16 = 3,
 }
 
-impl Into<f32> for AccelerometerSensitive {
-    fn into(self) -> f32 {
+impl AccelerometerRange {
+    pub fn scale_factor(&self) -> f32 {
         match self {
-            AccelerometerSensitive::Sensitive16384 => 16384.0,
-            AccelerometerSensitive::Sensitive8192 => 8192.0,
-            AccelerometerSensitive::Sensitive4096 => 4096.0,
-            AccelerometerSensitive::Sensitive2048 => 2048.0,
+            AccelerometerRange::G2 => 16384.0,
+            AccelerometerRange::G4 => 8192.0,
+            AccelerometerRange::G8 => 4096.0,
+            AccelerometerRange::G16 => 2048.0,
         }
     }
-}
-
-#[macro_export]
-macro_rules! accelerometer_sensitive {
-    (+/-2g, 16384/LSB) => {
-        AccelerometerSensitive::Sensitive16384
-    };
-    (+/-4g, 8192/LSB) => {
-        AccelerometerSensitive::Sensitive8192
-    };
-    (+/-8g, 4096/LSB) => {
-        AccelerometerSensitive::Sensitive4096
-    };
-    (+/-16g, 2048/LSB) => {
-        AccelerometerSensitive::Sensitive2048
-    };
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum GyroSensitive {
-    Sensitive131 = 0,
-    Sensitive65_5 = 1,
-    Sensitive32_8 = 2,
-    Sensitive16_4 = 3,
+pub enum GyroRange {
+    /// +/- 250°/s,  131 LSB/°/s
+    DPS250 = 0,
+    /// +/- 500°/s, 65.5 LSB/°/s
+    DPS500 = 1,
+    /// +/- 1000°/s, 32.8 LSB/°/s
+    DPS1000 = 2,
+    /// +/- 2000°/s, 16.4 LSB/°/s
+    DPS2000 = 3,
 }
 
-impl Into<f32> for GyroSensitive {
-    fn into(self) -> f32 {
+impl GyroRange {
+    pub fn scale_factor(&self) -> f32 {
         match self {
-            GyroSensitive::Sensitive131 => 131.0,
-            GyroSensitive::Sensitive65_5 => 65.5,
-            GyroSensitive::Sensitive32_8 => 32.8,
-            GyroSensitive::Sensitive16_4 => 16.4,
+            GyroRange::DPS250 => 131.0,
+            GyroRange::DPS500 => 65.5,
+            GyroRange::DPS1000 => 32.8,
+            GyroRange::DPS2000 => 16.4,
         }
     }
-}
-
-#[macro_export]
-macro_rules! gyro_sensitive {
-    (+/-250dps, 131LSB/dps) => {
-        GyroSensitive::Sensitive131
-    };
-    (+/-500dps, 65.5LSB/dps) => {
-        GyroSensitive::Sensitive65_5
-    };
-    (+/-1000dps, 32.8LSB/dps) => {
-        GyroSensitive::Sensitive32_8
-    };
-    (+/-2000dps, 16.4LSB/dps) => {
-        GyroSensitive::Sensitive16_4
-    };
 }
 
 #[allow(non_camel_case_types)]
@@ -154,8 +130,10 @@ pub enum Register {
     GyroZLow = 0x48,
     SignalPathReset = 0x68,
     UserControl = 0x6a,
-    PowerManagement1 = 0x6b, // Register to control chip waking from sleep, enabling sensors, default: sleep
-    PowerManagement2 = 0x6c, // Internal register to check slave addr
+    /// Register to control chip waking from sleep, enabling sensors, default: sleep
+    PowerManagement1 = 0x6b,
+    /// Internal register to check slave addr
+    PowerManagement2 = 0x6c,
     FifoCountHigh = 0x72,
     FifoCountLow = 0x73,
     FifoReadWrite = 0x74,

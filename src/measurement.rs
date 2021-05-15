@@ -1,10 +1,10 @@
-use crate::registers::{AccelerometerSensitive, GyroSensitive};
+use crate::registers::{AccelerometerRange, GyroRange};
 
 pub struct Acceleration(pub i16, pub i16, pub i16);
 
 impl Acceleration {
-    pub fn into_f32(self, sensitive: AccelerometerSensitive) -> (f32, f32, f32) {
-        let div: f32 = sensitive.into();
+    pub fn normalize(self, range: AccelerometerRange) -> (f32, f32, f32) {
+        let div: f32 = range.scale_factor();
         (self.0 as f32 / div, self.1 as f32 / div, self.2 as f32 / div)
     }
 }
@@ -28,8 +28,8 @@ impl From<&[u8]> for Acceleration {
 pub struct Gyro(pub i16, pub i16, pub i16);
 
 impl Gyro {
-    pub fn into_f32(self, sensitive: GyroSensitive) -> (f32, f32, f32) {
-        let div: f32 = sensitive.into();
+    pub fn normalize(self, range: GyroRange) -> (f32, f32, f32) {
+        let div: f32 = range.scale_factor();
         (self.0 as f32 / div, self.1 as f32 / div, self.2 as f32 / div)
     }
 }
