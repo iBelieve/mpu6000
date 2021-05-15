@@ -1,4 +1,4 @@
-use core::slice::from_mut;
+use core::slice;
 
 use embedded_hal::blocking::delay::DelayUs;
 use embedded_hal::blocking::{i2c, spi};
@@ -66,12 +66,7 @@ where
 
     fn read(&mut self, reg: Register) -> Result<u8, Self::Error> {
         let mut value = 0u8;
-        self.chip_select(true)?;
-        self.delay.delay_us(1);
-        self.bus.write(&[reg as u8 | 0x80]).map_err(|e| Self::Error::WriteError(e))?;
-        self.bus.transfer(from_mut(&mut value)).map_err(|e| Self::Error::TransferError(e))?;
-        self.chip_select(false)?;
-        self.delay.delay_us(1);
+        self.reads(reg, slice::from_mut(&mut value))?;
         Ok(value)
     }
 
@@ -92,9 +87,9 @@ pub struct I2cBus<BUS, DELAY> {
     delay: DELAY,
 }
 
-impl<WE, RE, I2C, DELAY> I2cBus<I2C, DELAY>
+impl<E, I2C, DELAY> I2cBus<I2C, DELAY>
 where
-    I2C: i2c::Write<Error = WE> + i2c::Read<Error = RE>,
+    I2C: i2c::Write<Error = E> + i2c::WriteRead<Error = E>,
 {
     pub fn i2c(i2c: I2C, address: u8, delay: DELAY) -> Self {
         Self { bus: i2c, address, delay }
@@ -107,37 +102,24 @@ impl<I2C, DELAY> I2cBus<I2C, DELAY> {
     }
 }
 
-pub enum I2CError<RE, WE> {
-    ReadError(RE),
-    WriteError(WE),
-}
-
-impl<RE, WE, I2C, DELAY> RegAccess for I2cBus<I2C, DELAY>
+impl<E, I2C, DELAY> RegAccess for I2cBus<I2C, DELAY>
 where
-    I2C: i2c::Read<Error = RE> + i2c::Write<Error = WE>,
+    I2C: i2c::Write<Error = E> + i2c::WriteRead<Error = E>,
     DELAY: DelayUs<u8>,
 {
-    type Error = I2CError<RE, WE>;
+    type Error = E;
 
     fn write(&mut self, reg: Register, value: u8) -> Result<(), Self::Error> {
-        self.bus.write(self.address, &[reg as u8, value]).map_err(|e| Self::Error::WriteError(e))
+        self.bus.write(self.address, &[reg as u8, value])
     }
 
     fn read(&mut self, reg: Register) -> Result<u8, Self::Error> {
         let mut value = 0u8;
-        self.bus
-            .write(self.address, &[reg as u8 | 0x80])
-            .map_err(|e| Self::Error::WriteError(e))?;
-
-        self.bus.read(self.address, from_mut(&mut value)).map_err(|e| Self::Error::ReadError(e))?;
+        self.reads(reg, slice::from_mut(&mut value))?;
         Ok(value)
     }
 
     fn reads(&mut self, reg: Register, output: &mut [u8]) -> Result<(), Self::Error> {
-        self.bus
-            .write(self.address, &[reg as u8 | 0x80])
-            .map_err(|e| Self::Error::WriteError(e))?;
-        self.bus.read(self.address, output).map_err(|e| Self::Error::ReadError(e))?;
-        Ok(())
+        self.bus.write_read(self.address, &[reg as u8 | 0x80], output)
     }
 }
